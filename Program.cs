@@ -19,21 +19,20 @@ app.MapGet("/newLog", (HttpContext context) =>
     $$"""
     <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <div class="log-labels">
-            <div class="oliver-label">
-                <img src="/images/Oliver-Head.png" alt="Oliver img">
-                <label>Oliver</label>
-            </div>
-            <div class="isla-label">
-                <img src="/images/Isla-Head.png" alt="Isla img">
-                <label>Isla</label>
-            </div>
-        </div>
         <div class="page">
-            <div id="eventLogOliver" class="event-log"></div>
+            <div class="log-section">
+                <div class="oliver-label">
+                    <img src="/images/Oliver-Head.png" alt="Oliver img">
+                    <label>Oliver</label>
+                </div>
+
+                <div id="eventLogOliver" class="event-log"></div>
+            </div>
+
             <div class="log-input">
                 <div class="input-group">
                     <div class="slider-container">
@@ -63,8 +62,15 @@ app.MapGet("/newLog", (HttpContext context) =>
                     <div id="customTime" class="custom-time"></div>
                 </div>
             </div>
-            <div id="eventLogIsla" class="event-log"></div>
-        </div>
+
+            <div class="log-section">
+                <div class="isla-label">
+                    <img src="/images/Isla-Head.png" alt="Isla img">
+                    <label>Isla</label>
+                </div>
+
+                <div id="eventLogIsla" class="event-log"></div>
+            </div>
         <script>
             let timeSlider = document.getElementById("toggleTime");
 
