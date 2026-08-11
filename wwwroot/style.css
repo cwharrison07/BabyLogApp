@@ -15,10 +15,10 @@ button {
     flex-direction: column;
     height: 100vh;
     align-items: center;
-    justify-content:  center;
+    justify-content: center;
 }
 
-.new-log button{
+.new-log button {
     cursor: pointer;
     background-color: lightblue;
     border-radius: 10px;
@@ -38,7 +38,6 @@ button {
     grid-template-columns: 500px 300px 500px;
     column-gap: 50px;
     height: 80vh;
-    
 }
 
 .event-log {
@@ -195,7 +194,7 @@ button {
 }
 
 #timeInput {
-    width: 150px;    
+    width: 150px;
 }
 
 .log-labels {
@@ -370,9 +369,11 @@ button {
     }
 
     .stats {
-        width: 90%;
-        margin-left: 0;
-        margin-right: auto;
+        justify-self: left;
+        justify-content: right;
+        width: 70%;
+        padding-left: 0px;
+        column-gap: 0px;
     }
 
     .stats label {
