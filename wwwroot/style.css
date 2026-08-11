@@ -375,6 +375,7 @@ button {
         grid-template-columns: 1fr 1fr 1fr;
         column-gap: 10px;
         box-sizing: border-box;
+        transform: translateX(5px);
     }
 
     .stats label {
