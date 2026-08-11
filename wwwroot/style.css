@@ -369,12 +369,10 @@ button {
         font-size: 45px;
     }
 
-    .stats  {
-        justify-self: left;
-        justify-content: right;
+    .stats {
         width: 90%;
-        padding-left: 0px;
-        column-gap: 10px;
+        margin-left: 0;
+        margin-right: auto;
     }
 
     .stats label {
