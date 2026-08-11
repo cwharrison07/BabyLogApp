@@ -373,6 +373,8 @@ button {
         width: 90%;
         margin-right: auto;
         margin-left: 0;
+        justify-self: auto;
+        justify-content: center;
         column-gap: 30px;
     }
 
