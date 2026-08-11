@@ -370,8 +370,10 @@ button {
     }
 
     .stats  {
+        justify-self: left;
+        justify-content: right;
         width: 70%;
-        padding-left: 30px;
+        padding-left: 0px;
         column-gap: 0px;
     }
 
