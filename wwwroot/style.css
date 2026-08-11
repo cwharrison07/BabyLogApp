@@ -36,7 +36,7 @@ button {
     display: grid;
     margin: 0 auto;
     grid-template-columns: 500px 300px 500px;
-    gap: 50px;
+    column-gap: 50px;
     height: 80vh;
     
 }
@@ -230,6 +230,34 @@ button {
     align-items: center;
 }
 
+.stats {
+    width: 100%;
+    align-self: center;
+    justify-self: center;
+    justify-content: center;
+    align-items: center;
+    grid-column: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    column-gap: 35px;
+}
+
+.stats label {
+    font-size: 30px;
+}
+
+.stat-title {
+    width: 200px;
+}
+
+#oliver-stat-label {
+    grid-column: 2;
+}
+
+#isla-stat-label {
+    grid-column: 3;
+}
+
 @media (max-width: 600px) {
 
     body {
@@ -339,5 +367,13 @@ button {
 
     .log-labels label {
         font-size: 45px;
+    }
+
+    .stats  {
+        padding-left: 70px;
+    }
+
+    .stats label {
+        font-size: 20px;
     }
 }
