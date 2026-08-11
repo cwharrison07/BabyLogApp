@@ -372,7 +372,7 @@ button {
     .stats {
         width: 90%;
         margin-right: auto;
-        margin-left: 5px;
+        margin-left: 50px;
         column-gap: 30px;
     }
 
