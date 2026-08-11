@@ -1,4 +1,11 @@
+using Microsoft.Data.Sqlite;
 using System.Xml.Linq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+
+string connectionString = "Data Source=babylog.db";
+
+using var connection = new SqliteConnection(connectionString);
+connection.Open();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDistributedMemoryCache();
@@ -9,19 +16,142 @@ app.UseSession();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+using var command = connection.CreateCommand();
+
+command.CommandText = """
+    CREATE TABLE IF NOT EXISTS Logs (
+        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+        Baby TEXT NOT NULL,
+        EventType TEXT NOT NULL,
+        Amount INTEGER,
+        EventTime TEXT NOT NULL
+    );
+    """;
+
+command.ExecuteNonQuery();
+
+command.CommandText = """
+    CREATE TABLE IF NOT EXISTS Stats (
+        Baby TEXT PRIMARY KEY,
+        NapCount INTEGER NOT NULL DEFAULT 0,
+        NapTime INTEGER NOT NULL DEFAULT 0,
+        AmountEaten INTEGER NOT NULL DEFAULT 0,
+        PoopCount INTEGER NOT NULL DEFAULT 0,
+        SleepStatus TEXT NOT NULL DEFAULT 'Fell Asleep',
+        StartSleep INTEGER
+    );
+
+    INSERT OR IGNORE INTO Stats (Baby)
+    VALUES ('Oliver'), ('Isla');
+    """;
+
+command.ExecuteNonQuery();
+
 app.MapGet("/newLog", (HttpContext context) =>
 {
-    context.Session.SetString("OliverSleep", "Fell Asleep");
-    context.Session.SetString("IslaSleep", "Fell Asleep");
+    using var connection = new SqliteConnection(connectionString);
+    connection.Open();
 
-    context.Session.SetInt32("OliverNapCount", 0);
-    context.Session.SetInt32("IslaNapCount", 0);
-    context.Session.SetInt32("OliverAmountEaten", 0);
-    context.Session.SetInt32("IslaAmountEaten", 0);
-    context.Session.SetInt32("OliverPoopCount", 0);
-    context.Session.SetInt32("IslaPoopCount", 0);
-    context.Session.SetInt32("OliverNapTime", 0);
-    context.Session.SetInt32("IslaNapTime", 0);
+    var command = connection.CreateCommand();
+    command.CommandText = """
+    SELECT Baby, NapCount, NapTime, AmountEaten, PoopCount, SleepStatus
+    FROM Stats
+    """;
+
+    int oliverNapCount = 0;
+    int oliverNapTime = 0;
+    int oliverAmountEaten = 0;
+    int oliverPoopCount = 0;
+    string oliverSleepStatus = "Fell Asleep";
+
+    int islaNapCount = 0;
+    int islaNapTime = 0;
+    int islaAmountEaten = 0;
+    int islaPoopCount = 0;
+    string islaSleepStatus = "Fell Asleep";
+
+    using (var reader = command.ExecuteReader())
+    {
+        while (reader.Read())
+        {
+            string baby = reader.GetString(0);
+
+            if (baby == "Oliver")
+            {
+                oliverNapCount = reader.GetInt32(1);
+                oliverNapTime = reader.GetInt32(2);
+                oliverAmountEaten = reader.GetInt32(3);
+                oliverPoopCount = reader.GetInt32(4);
+                oliverSleepStatus = reader.GetString(5);
+            }
+            else if (baby == "Isla")
+            {
+                islaNapCount = reader.GetInt32(1);
+                islaNapTime = reader.GetInt32(2);
+                islaAmountEaten = reader.GetInt32(3);
+                islaPoopCount = reader.GetInt32(4);
+                islaSleepStatus = reader.GetString(5);
+            }
+        }
+    } // reader is closed here
+
+    command.CommandText = """
+        SELECT Baby, EventType, Amount, EventTime
+        FROM Logs
+        ORDER BY Id
+        """;
+
+    var oliverLogs = new List<string>();
+    var islaLogs = new List<string>();
+
+    using (var reader = command.ExecuteReader())
+    {
+        while (reader.Read())
+        {
+            string baby = reader.GetString(0);
+            string eventType = reader.GetString(1);
+            int? amount = reader.IsDBNull(2) ? null : reader.GetInt32(2);
+            string eventTime = reader.GetString(3);
+
+            string log;
+
+            if (eventType == "Ate")
+            {
+                log = $"{eventTime}: Ate {amount}";
+            }
+            else if (eventType == "Pee")
+            {
+                log = $"{eventTime}: Changed Diaper (Pee)";
+            }
+            else if (eventType == "Poop")
+            {
+                log = $"{eventTime}: Changed Diaper (Poop)";
+            }
+            else
+            {
+                log = $"{eventTime}: {eventType}";
+            }
+
+            if (baby == "Oliver")
+                oliverLogs.Add(log);
+            else if (baby == "Isla")
+                islaLogs.Add(log);
+        }
+    }
+
+    string oliverLogHtml = "";
+
+    foreach (string log in oliverLogs)
+    {
+        oliverLogHtml += $"<label>{log}</label>";
+    }
+
+    string islaLogHtml = "";
+
+    foreach (string log in islaLogs)
+    {
+        islaLogHtml += $"<label>{log}</label>";
+    }
 
     return Results.Content(
     $$"""
@@ -38,7 +168,7 @@ app.MapGet("/newLog", (HttpContext context) =>
                     <label>Oliver</label>
                 </div>
 
-                <div id="eventLogOliver" class="event-log"></div>
+                <div id="eventLogOliver" class="event-log">{{oliverLogHtml}}</div>
             </div>
 
             <div class="log-input">
@@ -49,7 +179,7 @@ app.MapGet("/newLog", (HttpContext context) =>
                         <span>Isla</span>
                     </div>
 
-                    <button id="sleep" onclick="eventInput(this)">Fell Asleep</button>
+                    <button id="sleep" onclick="eventInput(this)">{{oliverSleepStatus}}</button>
 
                     <div class="diaper-row">
                         <button id="pee" onclick="eventInput(this)">Changed Diaper (Pee)</button>
@@ -77,24 +207,28 @@ app.MapGet("/newLog", (HttpContext context) =>
                     <label>Isla</label>
                 </div>
 
-                <div id="eventLogIsla" class="event-log"></div>
+                <div id="eventLogIsla" class="event-log">{{islaLogHtml}}</div>
             </div>
 
             <div class="stats">
                 <label id="oliver-stat-label">Oliver</label>
                 <label id="isla-stat-label">Isla</label>
                 <label class="stat-title"># of Naps:</label>
-                <label id="oliver-nap-count">{{context.Session.GetInt32("OliverNapCount")}}</label>
-                <label id="isla-nap-count">{{context.Session.GetInt32("IslaNapCount")}}</label>
+                <label id="oliver-nap-count">{{oliverNapCount}}</label>
+                <label id="isla-nap-count">{{islaNapCount}}</label>
                 <label class="stat-title">Time Asleep:</label>
-                <label id="oliver-nap-time">{{context.Session.GetInt32("OliverNapTime")}}</label>
-                <label id="isla-nap-time">{{context.Session.GetInt32("IslaNapTime")}}</label>
+                <label id="oliver-nap-time"></label>
+                <label id="isla-nap-time"></label>
                 <label class="stat-title">Amount Eaten:</label>
-                <label id="oliver-amount-eaten">{{context.Session.GetInt32("OliverAmountEaten")}}</label>
-                <label id="isla-amount-eaten">{{context.Session.GetInt32("IslaAmountEaten")}}</label>
+                <label id="oliver-amount-eaten">{{oliverAmountEaten}}</label>
+                <label id="isla-amount-eaten">{{islaAmountEaten}}</label>
                 <label class="stat-title"># of Poops:</label>
-                <label id="oliver-poop-count">{{context.Session.GetInt32("OliverPoopCount")}}</label>
-                <label id="isla-poop-count">{{context.Session.GetInt32("IslaPoopCount")}}</label>
+                <label id="oliver-poop-count">{{oliverPoopCount}}</label>
+                <label id="isla-poop-count">{{islaPoopCount}}</label>
+            </div>
+
+            <div class="reset-log">
+                <button id="reset-button" onclick="resetLogs()">Reset Logs</button>
             </div>
         <script>
             let timeSlider = document.getElementById("toggleTime");
@@ -111,8 +245,8 @@ app.MapGet("/newLog", (HttpContext context) =>
                 }
             });
 
-            let oliverSleep = "{{context.Session.GetString("OliverSleep")}}";
-            let islaSleep = "{{context.Session.GetString("IslaSleep")}}";
+            let oliverSleep = "{{oliverSleepStatus}}";
+            let islaSleep = "{{islaSleepStatus}}";
             
             let sleepButton = document.getElementById("sleep");
             let slider = document.getElementById("toggle");
@@ -124,6 +258,12 @@ app.MapGet("/newLog", (HttpContext context) =>
                     sleepButton.textContent = islaSleep;
                 }
             });
+
+            document.getElementById("oliver-nap-time").textContent =
+                minutesToHHMM({{oliverNapTime}});
+
+            document.getElementById("isla-nap-time").textContent =
+                minutesToHHMM({{islaNapTime}});
 
             function eventInput(input) {
                 let eventLogHTML = document.getElementById("eventLogOliver");
@@ -150,13 +290,12 @@ app.MapGet("/newLog", (HttpContext context) =>
 
                 let eventLog = document.createElement("label");
                 if (input.id === "sleep") {
-                    
 
                     if (input.textContent === "Fell Asleep") {
                         fetch(`/setSleep?name=${name}&status=Woke%20Up&time=${time}`)
                             .then(response => response.json())
                             .then(data => {
-                                timeAsleep = minutesToHHMM(data.napTime);
+                                let timeAsleep = minutesToHHMM(data.napTime);
                                 if (data.name === "Oliver") {
                                     document.getElementById("oliver-nap-count").textContent = data.napCount;
                                     document.getElementById("oliver-nap-time").textContent = timeAsleep;
@@ -165,6 +304,7 @@ app.MapGet("/newLog", (HttpContext context) =>
                                     document.getElementById("isla-nap-time").textContent = timeAsleep;
                                 }
                             });
+                        fetch(`/addLog?name=${name}&eventType=Fell%20Asleep&eventTime=${encodeURIComponent(time)}`);
                         input.textContent = "Woke Up";
 
                         if (name === "Oliver") oliverSleep = "Woke Up";
@@ -185,6 +325,7 @@ app.MapGet("/newLog", (HttpContext context) =>
                                     document.getElementById("isla-nap-time").textContent = timeAsleep;
                                 }
                             });
+                        fetch(`/addLog?name=${name}&eventType=Woke%20Up&eventTime=${encodeURIComponent(time)}`);
                         input.textContent = "Fell Asleep";
 
                         if (name === "Oliver") oliverSleep = "Fell Asleep";
@@ -203,10 +344,12 @@ app.MapGet("/newLog", (HttpContext context) =>
                                 document.getElementById("isla-amount-eaten").textContent = data.amountEaten;
                             }
                         });
+                    fetch(`/addLog?name=${name}&eventType=Ate&amount=${input.value.substring(0, 1)}&eventTime=${encodeURIComponent(time)}`);
                     eventLog.textContent = time + ": Ate " + input.value;
                     input.value = "";
                     eventLogHTML.appendChild(eventLog);
                 } else if (input.id === "pee") {
+                    fetch(`/addLog?name=${name}&eventType=Pee&eventTime=${encodeURIComponent(time)}`);
                     eventLog.textContent = time + ": Changed Diaper (Pee)";
                     eventLogHTML.appendChild(eventLog);
                 } else {
@@ -219,6 +362,7 @@ app.MapGet("/newLog", (HttpContext context) =>
                                 document.getElementById("isla-poop-count").textContent = data.poopCount;
                             }
                         });
+                    fetch(`/addLog?name=${name}&eventType=Poop&eventTime=${encodeURIComponent(time)}`);
                     eventLog.textContent = time + ": Changed Diaper (Poop)";
                     eventLogHTML.appendChild(eventLog); 
                 }
@@ -230,6 +374,21 @@ app.MapGet("/newLog", (HttpContext context) =>
 
                 return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
             }
+
+            function resetLogs() {
+                fetch(`/resetLogs`);
+                document.getElementById("eventLogOliver").innerHTML = "";
+                document.getElementById("eventLogIsla").innerHTML = "";
+                document.getElementById("sleep").textContent = "Fell Asleep";
+                document.getElementById("oliver-nap-count").textContent = 0;
+                document.getElementById("isla-nap-count").textContent = 0;
+                document.getElementById("oliver-nap-time").textContent = "00:00";
+                document.getElementById("isla-nap-time").textContent = "00:00";
+                document.getElementById("oliver-amount-eaten").textContent = 0;
+                document.getElementById("isla-amount-eaten").textContent = 0;
+                document.getElementById("oliver-poop-count").textContent = 0;
+                document.getElementById("isla-poop-count").textContent = 0;
+            }
         </script>
     </body>
     </html>
@@ -239,14 +398,22 @@ app.MapGet("/newLog", (HttpContext context) =>
 
 app.MapGet("/setSleep", (HttpContext context, string name, string status, string time) =>
 {
-    if (name == "Oliver")
-    {
-        context.Session.SetString("OliverSleep", status);
-    }
-    else if (name == "Isla")
-    {
-        context.Session.SetString("IslaSleep", status);
-    }
+    using var connection = new SqliteConnection(connectionString);
+    connection.Open();
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText =
+        """
+        UPDATE Stats
+        SET SleepStatus = $status
+        WHERE Baby = $name
+        """;
+
+    command.Parameters.AddWithValue("$status", status);
+    command.Parameters.AddWithValue("$name", name);
+
+    command.ExecuteNonQuery();
 
     int hour = int.Parse(time.Substring(0, time.IndexOf(":"))) % 12;
     int min = int.Parse(time.Substring(time.IndexOf(":") + 1, 2));
@@ -256,48 +423,191 @@ app.MapGet("/setSleep", (HttpContext context, string name, string status, string
 
     if (status == "Woke Up")
     {
-        
-        context.Session.SetInt32($"{name}NapCount", (int)context.Session.GetInt32($"{name}NapCount")! + 1);
-        context.Session.SetInt32($"{name}StartSleep", timeInMin);
+
+        command.CommandText = """
+            UPDATE Stats
+            SET NapCount = NapCount + 1,
+                StartSleep = $startSleep
+            WHERE Baby = $name
+            """;
+        command.Parameters.Clear();
+        command.Parameters.AddWithValue("$startSleep", timeInMin);
+        command.Parameters.AddWithValue("$name", name);
+
+        command.ExecuteNonQuery();
     } else
     {
-        context.Session.SetInt32($"{name}NapTime", (int)context.Session.GetInt32($"{name}NapTime")! + timeInMin - (int)context.Session.GetInt32($"{name}StartSleep")!);
+        command.CommandText = """
+            UPDATE Stats
+            SET NapTime = NapTime + $timeInMin - StartSleep
+            WHERE Baby = $name
+            """;
+
+        command.Parameters.Clear();
+        command.Parameters.AddWithValue("$timeInMin", timeInMin);
+        command.Parameters.AddWithValue("$name", name);
+
+        command.ExecuteNonQuery();
     }
 
-    return Results.Json(new
+    command.CommandText = """
+    SELECT NapCount, NapTime
+    FROM Stats
+    WHERE Baby = $name
+    """;
+
+    command.Parameters.Clear();
+    command.Parameters.AddWithValue("$name", name);
+
+    using var reader = command.ExecuteReader();
+
+    if (reader.Read())
     {
-        name = name,
-        napCount = context.Session.GetInt32($"{name}NapCount"),
-        napTime = context.Session.GetInt32($"{name}NapTime")
-    });
+        return Results.Json(new
+        {
+            name = name,
+            napCount = reader.GetInt32(0),
+            napTime = reader.GetInt32(1)
+        });
+    }
+
+    return Results.NotFound();
 });
 
 app.MapGet("/updateIntake", (HttpContext context, string name, int amount) =>
 {
-    int current = context.Session.GetInt32($"{name}AmountEaten") ?? 0;
-    int newAmount = current + amount;
+    using var connection = new SqliteConnection(connectionString);
+    connection.Open();
 
-    context.Session.SetInt32($"{name}AmountEaten", newAmount);
+    using var command = connection.CreateCommand();
 
-    return Results.Json(new
+    command.CommandText =
+        """
+        UPDATE Stats
+        SET AmountEaten = AmountEaten + $amount
+        WHERE Baby = $name
+        """;
+
+    command.Parameters.Clear();
+    command.Parameters.AddWithValue("$amount", amount);
+    command.Parameters.AddWithValue("$name", name);
+
+    command.ExecuteNonQuery();
+
+    command.CommandText = """
+    SELECT AmountEaten
+    FROM Stats
+    WHERE Baby = $name
+    """;
+
+    command.Parameters.Clear();
+    command.Parameters.AddWithValue("$name", name);
+
+    using var reader = command.ExecuteReader();
+
+    if (reader.Read())
     {
-        name = name,
-        amountEaten = newAmount
-    });
+        return Results.Json(new
+        {
+            name = name,
+            amountEaten = reader.GetInt32(0)
+        });
+    }
+
+    return Results.NotFound();
 });
 
 app.MapGet("/updateOutput", (HttpContext context, string name) =>
 {
-    int current = context.Session.GetInt32($"{name}PoopCount") ?? 0;
-    int newCount = current + 1;
+    using var connection = new SqliteConnection(connectionString);
+    connection.Open();
 
-    context.Session.SetInt32($"{name}PoopCount", newCount);
+    using var command = connection.CreateCommand();
 
-    return Results.Json(new
+    command.CommandText =
+        """
+        UPDATE Stats
+        SET PoopCount = PoopCount + 1
+        WHERE Baby = $name
+        """;
+
+    command.Parameters.Clear();
+    command.Parameters.AddWithValue("$name", name);
+
+    command.ExecuteNonQuery();
+
+    command.CommandText = """
+    SELECT PoopCount
+    FROM Stats
+    WHERE Baby = $name
+    """;
+
+    command.Parameters.Clear();
+    command.Parameters.AddWithValue("$name", name);
+
+    using var reader = command.ExecuteReader();
+
+    if (reader.Read())
     {
-        name = name,
-        poopCount = newCount
-    });
+        return Results.Json(new
+        {
+            name = name,
+            poopCount = reader.GetInt32(0)
+        });
+    }
+
+    return Results.NotFound();
+});
+
+app.MapGet("/resetLogs", (HttpContext context) =>
+{
+    using var connection = new SqliteConnection(connectionString);
+    connection.Open();
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = """
+        UPDATE Stats
+        SET SleepStatus = 'Fell Asleep',
+            NapCount = 0,
+            NapTime = 0,
+            AmountEaten = 0,
+            PoopCount = 0,
+            StartSleep = NULL
+        WHERE Baby IN ('Oliver', 'Isla')
+        """;
+
+    command.ExecuteNonQuery();
+
+    command.CommandText = """
+        DELETE FROM Logs
+        """;
+
+    command.ExecuteNonQuery();
+
+    return Results.Ok();
+});
+
+app.MapGet("/addLog", (string name, string eventType, int? amount, string eventTime) =>
+{
+    using var connection = new SqliteConnection(connectionString);
+    connection.Open();
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = """
+        INSERT INTO Logs (Baby, EventType, Amount, EventTime)
+        VALUES ($name, $eventType, $amount, $eventTime)
+        """;
+
+    command.Parameters.AddWithValue("$name", name);
+    command.Parameters.AddWithValue("$eventType", eventType);
+    command.Parameters.AddWithValue("$amount", (object?)amount ?? DBNull.Value);
+    command.Parameters.AddWithValue("$eventTime", eventTime);
+
+    command.ExecuteNonQuery();
+
+    return Results.Ok();
 });
 
 
