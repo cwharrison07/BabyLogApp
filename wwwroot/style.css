@@ -370,14 +370,18 @@ button {
 
     .stats {
         width: 90%;
-        margin-right: auto;
-        margin-left: 0;
-        justify-self: auto;
-        justify-content: center;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
         column-gap: 10px;
+        box-sizing: border-box;
     }
 
     .stats label {
         font-size: 20px;
+    }
+
+    .stat-title {
+        width: auto;
     }
 }
