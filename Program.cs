@@ -11,17 +11,17 @@ app.UseStaticFiles();
 
 app.MapGet("/newLog", (HttpContext context) =>
 {
-    if (context.Session.GetString("OliverSleep") == null) context.Session.SetString("OliverSleep", "Fell Asleep");
-    if (context.Session.GetString("IslaSleep") == null) context.Session.SetString("IslaSleep", "Fell Asleep");
+    context.Session.SetString("OliverSleep", "Fell Asleep");
+    context.Session.SetString("IslaSleep", "Fell Asleep");
 
-    if (context.Session.GetInt32("OliverNapCount") == null) context.Session.SetInt32("OliverNapCount", 0);
-    if (context.Session.GetInt32("IslaNapCount") == null) context.Session.SetInt32("IslaNapCount", 0);
-    if (context.Session.GetInt32("OliverAmountEaten") == null) context.Session.SetInt32("OliverAmountEaten", 0);
-    if (context.Session.GetInt32("IslaAmountEaten") == null) context.Session.SetInt32("IslaAmountEaten", 0);
-    if (context.Session.GetInt32("OliverPoopCount") == null) context.Session.SetInt32("OliverPoopCount", 0);
-    if (context.Session.GetInt32("IslaPoopCount") == null) context.Session.SetInt32("IslaPoopCount", 0);
-    if (context.Session.GetInt32("OliverNapTime") == null) context.Session.SetInt32("OliverNapTime", 0);
-    if (context.Session.GetInt32("IslaNapTime") == null) context.Session.SetInt32("IslaNapTime", 0);
+    context.Session.SetInt32("OliverNapCount", 0);
+    context.Session.SetInt32("IslaNapCount", 0);
+    context.Session.SetInt32("OliverAmountEaten", 0);
+    context.Session.SetInt32("IslaAmountEaten", 0);
+    context.Session.SetInt32("OliverPoopCount", 0);
+    context.Session.SetInt32("IslaPoopCount", 0);
+    context.Session.SetInt32("OliverNapTime", 0);
+    context.Session.SetInt32("IslaNapTime", 0);
 
     return Results.Content(
     $$"""
