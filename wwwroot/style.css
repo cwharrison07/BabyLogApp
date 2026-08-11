@@ -375,7 +375,7 @@ button {
         margin-left: 0;
         justify-self: auto;
         justify-content: center;
-        column-gap: 10px;
+        column-gap: 30px;
     }
 
     .stats label {
