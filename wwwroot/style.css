@@ -370,12 +370,12 @@ button {
     }
 
     .stats {
-        width: 90%;
+        width: 70%;
         margin-right: auto;
         margin-left: 0;
         justify-self: auto;
         justify-content: center;
-        column-gap: 30px;
+        column-gap: 10px;
     }
 
     .stats label {
