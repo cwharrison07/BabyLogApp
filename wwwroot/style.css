@@ -370,7 +370,9 @@ button {
     }
 
     .stats  {
-        padding-left: 70px;
+        width: 70%;
+        padding-left: 30px;
+        column-gap: 0px;
     }
 
     .stats label {
