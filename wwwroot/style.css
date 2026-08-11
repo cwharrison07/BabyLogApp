@@ -372,9 +372,7 @@ button {
     .stats {
         width: 90%;
         margin-right: auto;
-        margin-left: 50px;
-        justify-self: auto;
-        justify-content: center;
+        margin-left: 0;
         column-gap: 30px;
     }
 
