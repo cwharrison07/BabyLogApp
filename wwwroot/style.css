@@ -373,7 +373,7 @@ button {
         width: 90%;
         margin-right: auto;
         margin-left: 0;
-        left: -10px;
+        left: 0px;
         column-gap: 30px;
     }
 
