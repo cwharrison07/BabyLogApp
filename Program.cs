@@ -610,5 +610,5 @@ app.MapGet("/addLog", (string name, string eventType, int? amount, string eventT
     return Results.Ok();
 });
 
-
+ 
 app.Run();
