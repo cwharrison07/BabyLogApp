@@ -189,6 +189,7 @@ app.MapGet("/newLog", (HttpContext context) =>
                     <div class="eat-row">
                         <label>Ate: </label>
                         <input id="eat" onkeydown="if (event.key === 'Enter') eventInput(this)" placeholder="Amount">
+                        <button id="eat-button" onclick="eventInput(document.getElementById('eat'))">Add</button>
                     </div>
 
                     <div class="slider-container">
@@ -697,7 +698,7 @@ app.MapGet("/getLogs", () =>
 
         if (eventType == "Ate")
         {
-            log = $"{eventTime}: Ate {amount}";
+            log = $"{eventTime}: Ate {amount} oz.";
         }
         else if (eventType == "Pee")
         {

@@ -125,6 +125,13 @@ button {
     border: 2px solid black;
 }
 
+#eat-button {
+    background-color: lightsteelblue;
+    color: white;
+    font-size: 25px;
+    margin: 10px;
+}
+
 .diaper-row {
     display: flex;
     align-items: center;
