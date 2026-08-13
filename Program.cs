@@ -375,18 +375,64 @@ app.MapGet("/newLog", (HttpContext context) =>
                 return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
             }
 
-                setInterval(() => {
-                    fetch("/getLogs")
-                        .then(response => response.json())
-                        .then(data => {
-                            document.getElementById("eventLogOliver").innerHTML =
-                                data.oliver;
+            setInterval(() => {
+                fetch("/getLogs")
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById("eventLogOliver").innerHTML =
+                            data.oliver;
 
-                            document.getElementById("eventLogIsla").innerHTML =
-                                data.isla;
-                        });
-                }, 2000);
+                        document.getElementById("eventLogIsla").innerHTML =
+                            data.isla;
+                    });
+            }, 2000);
 
+            setInterval(() => {
+                fetch("/getStats")
+                    .then(response => response.json())
+                    .then(data => {
+
+                        document.getElementById("oliver-nap-count").textContent =
+                            data.oliver.napCount;
+
+                        document.getElementById("oliver-nap-time").textContent =
+                            minutesToHHMM(data.oliver.napTime);
+
+                        document.getElementById("oliver-amount-eaten").textContent =
+                            data.oliver.amountEaten;
+
+                        document.getElementById("oliver-poop-count").textContent =
+                            data.oliver.poopCount;
+
+
+                        document.getElementById("isla-nap-count").textContent =
+                            data.isla.napCount;
+
+                        document.getElementById("isla-nap-time").textContent =
+                            minutesToHHMM(data.isla.napTime);
+
+                        document.getElementById("isla-amount-eaten").textContent =
+                            data.isla.amountEaten;
+
+                        document.getElementById("isla-poop-count").textContent =
+                            data.isla.poopCount;
+
+
+                        // Update sleep button
+                        oliverSleep = data.oliver.sleepStatus;
+                        islaSleep = data.isla.sleepStatus;
+
+                        if (slider.value == 0) {
+                            sleepButton.textContent = oliverSleep;
+                        } else {
+                            sleepButton.textContent = islaSleep;
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error getting stats:", error);
+                    });
+            }, 2000);
+                
             function resetLogs() {
                 fetch(`/resetLogs`);
                 document.getElementById("eventLogOliver").innerHTML = "";
@@ -680,6 +726,76 @@ app.MapGet("/getLogs", () =>
     {
         oliver = string.Join("", oliverLogs),
         isla = string.Join("", islaLogs)
+    });
+});
+
+app.MapGet("/getStats", () =>
+{
+    using var connection = new SqliteConnection(connectionString);
+    connection.Open();
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = """
+        SELECT Baby, NapCount, NapTime, AmountEaten, PoopCount, SleepStatus
+        FROM Stats
+        """;
+
+    int oliverNapCount = 0;
+    int oliverNapTime = 0;
+    int oliverAmountEaten = 0;
+    int oliverPoopCount = 0;
+    string oliverSleepStatus = "Fell Asleep";
+
+    int islaNapCount = 0;
+    int islaNapTime = 0;
+    int islaAmountEaten = 0;
+    int islaPoopCount = 0;
+    string islaSleepStatus = "Fell Asleep";
+
+    using var reader = command.ExecuteReader();
+
+    while (reader.Read())
+    {
+        string baby = reader.GetString(0);
+
+        if (baby == "Oliver")
+        {
+            oliverNapCount = reader.GetInt32(1);
+            oliverNapTime = reader.GetInt32(2);
+            oliverAmountEaten = reader.GetInt32(3);
+            oliverPoopCount = reader.GetInt32(4);
+            oliverSleepStatus = reader.GetString(5);
+        }
+        else if (baby == "Isla")
+        {
+            islaNapCount = reader.GetInt32(1);
+            islaNapTime = reader.GetInt32(2);
+            islaAmountEaten = reader.GetInt32(3);
+            islaPoopCount = reader.GetInt32(4);
+            islaSleepStatus = reader.GetString(5);
+        }
+    }
+
+    return Results.Json(new
+    {
+        oliver = new
+        {
+            napCount = oliverNapCount,
+            napTime = oliverNapTime,
+            amountEaten = oliverAmountEaten,
+            poopCount = oliverPoopCount,
+            sleepStatus = oliverSleepStatus
+        },
+
+        isla = new
+        {
+            napCount = islaNapCount,
+            napTime = islaNapTime,
+            amountEaten = islaAmountEaten,
+            poopCount = islaPoopCount,
+            sleepStatus = islaSleepStatus
+        }
     });
 });
 
