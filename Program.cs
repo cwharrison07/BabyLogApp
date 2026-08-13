@@ -316,7 +316,7 @@ app.MapGet("/newLog", (HttpContext context) =>
                         fetch(`/setSleep?name=${name}&status=Fell%20Asleep&time=${time}`)
                             .then(response => response.json())
                             .then(data => {
-                                timeAsleep = minutesToHHMM(data.napTime);
+                                let timeAsleep = minutesToHHMM(data.napTime);
                                 if (data.name === "Oliver") {
                                     document.getElementById("oliver-nap-count").textContent = data.napCount;
                                     document.getElementById("oliver-nap-time").textContent = timeAsleep;
@@ -374,6 +374,18 @@ app.MapGet("/newLog", (HttpContext context) =>
 
                 return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
             }
+
+                setInterval(() => {
+                    fetch("/getLogs")
+                        .then(response => response.json())
+                        .then(data => {
+                            document.getElementById("eventLogOliver").innerHTML =
+                                data.oliver;
+
+                            document.getElementById("eventLogIsla").innerHTML =
+                                data.isla;
+                        });
+                }, 2000);
 
             function resetLogs() {
                 fetch(`/resetLogs`);
@@ -610,5 +622,66 @@ app.MapGet("/addLog", (string name, string eventType, int? amount, string eventT
     return Results.Ok();
 });
 
- 
+app.MapGet("/getLogs", () =>
+{
+    using var connection = new SqliteConnection(connectionString);
+    connection.Open();
+
+    using var command = connection.CreateCommand();
+
+    command.CommandText = """
+        SELECT Baby, EventType, Amount, EventTime
+        FROM Logs
+        ORDER BY Id
+        """;
+
+    var oliverLogs = new List<string>();
+    var islaLogs = new List<string>();
+
+    using var reader = command.ExecuteReader();
+
+    while (reader.Read())
+    {
+        string baby = reader.GetString(0);
+        string eventType = reader.GetString(1);
+        int? amount = reader.IsDBNull(2) ? null : reader.GetInt32(2);
+        string eventTime = reader.GetString(3);
+
+        string log;
+
+        if (eventType == "Ate")
+        {
+            log = $"{eventTime}: Ate {amount}";
+        }
+        else if (eventType == "Pee")
+        {
+            log = $"{eventTime}: Changed Diaper (Pee)";
+        }
+        else if (eventType == "Poop")
+        {
+            log = $"{eventTime}: Changed Diaper (Poop)";
+        }
+        else
+        {
+            log = $"{eventTime}: {eventType}";
+        }
+
+        if (baby == "Oliver")
+        {
+            oliverLogs.Add($"<label>{log}</label>");
+        }
+        else if (baby == "Isla")
+        {
+            islaLogs.Add($"<label>{log}</label>");
+        }
+    }
+
+    return Results.Json(new
+    {
+        oliver = string.Join("", oliverLogs),
+        isla = string.Join("", islaLogs)
+    });
+});
+
+
 app.Run();
